@@ -1,0 +1,23 @@
+# Streamlit secrets
+.streamlit/secrets.toml
+
+# Google service-account credentials
+citric-biplane-*.json
+
+# Experiment response data
+data/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# PyCharm
+.idea/
+
+# Virtual environments
+venv/
+.venv/
+
+# OS files
+.DS_Store
+Thumbs.db
