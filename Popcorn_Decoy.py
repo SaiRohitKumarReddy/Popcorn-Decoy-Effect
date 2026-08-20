@@ -21,7 +21,7 @@ APP_VERSION = "3.0.0"
 # ============================================================
 
 st.set_page_config(
-    page_title="The Popcorn Decoy Game",
+    page_title="The Popcorn Decoy Effect",
     page_icon=None,
     layout="centered",
     initial_sidebar_state="collapsed",
