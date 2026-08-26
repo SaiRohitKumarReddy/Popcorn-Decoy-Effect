@@ -21,7 +21,7 @@ APP_VERSION = "3.0.0"
 # ============================================================
 
 st.set_page_config(
-    page_title="The Popcorn Decoy Effect",
+    page_title="Movie Snack Choice",
     page_icon=None,
     layout="centered",
     initial_sidebar_state="collapsed",
@@ -1322,7 +1322,7 @@ def render_header() -> None:
     render_html(
         """
         <h1 class="main-title">
-            The Popcorn Decoy Game
+            Movie Snack Choice
         </h1>
 
         <div class="title-spacer"></div>
