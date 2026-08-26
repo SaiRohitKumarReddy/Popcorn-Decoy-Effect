@@ -1582,7 +1582,7 @@ def render_question_screen(
 
             <div class="question-card">
                 <div class="question">
-                    Which popcorn will you buy?
+                    When you go to a movie, which popcorn option would you choose?
                 </div>
             </div>
 
