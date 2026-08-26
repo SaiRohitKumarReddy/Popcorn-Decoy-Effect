@@ -1582,7 +1582,9 @@ def render_question_screen(
 
             <div class="question-card">
                 <div class="question">
-                    If you were buying popcorn at a movie theatre, which option would you choose? 
+                   {"If you were buying popcorn at a movie theatre, which option would you choose?"
+                    if scenario == 1
+                    else "Now, which popcorn option would you choose?"}
                 </div>
             </div>
 
