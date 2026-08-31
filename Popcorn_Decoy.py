@@ -466,15 +466,6 @@ st.markdown(
             height: 0.72rem;
         }}
 
-        .option-size-note {{
-            color: {MUTED};
-            font-size: 0.70rem;
-            line-height: 1.35;
-            text-align: center;
-            margin-top: 0.42rem;
-            min-height: 1.9rem;
-        }}
-
         .options-to-submit-gap {{
             height: 0.92rem;
         }}
@@ -507,18 +498,21 @@ st.markdown(
         .st-key-popcorn_choice_medium button,
         .st-key-popcorn_choice_large button,
         .st-key-popcorn_choice_dont_know button {{
-            min-height: 50px !important;
-            height: 50px !important;
-            font-size: 0.82rem !important;
-            padding-left: 1rem !important;
-            padding-right: 1rem !important;
+            min-height: 76px !important;
+            height: 76px !important;
+            font-size: 0.90rem !important;
+            line-height: 1.35 !important;
+            padding: 0.58rem 0.85rem !important;
         }}
 
         .st-key-popcorn_choice_small button p,
         .st-key-popcorn_choice_medium button p,
         .st-key-popcorn_choice_large button p,
         .st-key-popcorn_choice_dont_know button p {{
-            font-size: 0.82rem !important;
+            font-size: 0.90rem !important;
+            line-height: 1.38 !important;
+            white-space: normal !important;
+            text-align: center !important;
         }}
 
         /* Make only the final submit action larger on the question area. */
@@ -1665,11 +1659,21 @@ def render_question_screen(
 
         with option_col:
 
-            button_label = (
-                option_name.upper()
-                if price is None
-                else f"{option_name.upper()} · ₹{price}"
+            size_description = size_descriptions.get(
+                option_name
             )
+
+            if price is None:
+                button_label = option_name.upper()
+            elif size_description:
+                # Markdown hard break keeps the size information inside
+                # the same clickable capsule on a second line.
+                button_label = (
+                    f"{option_name.upper()} · ₹{price}  \n"
+                    f"{size_description}"
+                )
+            else:
+                button_label = f"{option_name.upper()} · ₹{price}"
 
             option_key = (
                 option_name.lower()
@@ -1687,15 +1691,6 @@ def render_question_screen(
                     else "secondary"
                 ),
             )
-
-            size_description = size_descriptions.get(
-                option_name
-            )
-
-            if size_description:
-                render_html(
-                    f'<div class="option-size-note">{size_description}</div>'
-                )
 
         if option_clicked:
 
