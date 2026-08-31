@@ -466,6 +466,15 @@ st.markdown(
             height: 0.72rem;
         }}
 
+        .option-size-note {{
+            color: {MUTED};
+            font-size: 0.70rem;
+            line-height: 1.35;
+            text-align: center;
+            margin-top: 0.42rem;
+            min-height: 1.9rem;
+        }}
+
         .options-to-submit-gap {{
             height: 0.92rem;
         }}
@@ -1616,6 +1625,12 @@ def render_question_screen(
         for option_name, price in options
     }
 
+    size_descriptions = {
+        "Small": "Size - 6 to 11 cups of popcorn",
+        "Medium": "Size - 12 to 15 cups of popcorn",
+        "Large": "Size - 16 to 20+ cups of popcorn",
+    }
+
     current_choice = st.session_state.get(
         "selected_choice"
     )
@@ -1672,6 +1687,15 @@ def render_question_screen(
                     else "secondary"
                 ),
             )
+
+            size_description = size_descriptions.get(
+                option_name
+            )
+
+            if size_description:
+                render_html(
+                    f'<div class="option-size-note">{size_description}</div>'
+                )
 
         if option_clicked:
 
