@@ -47,6 +47,14 @@ BORDER = "#DDE1E5"
 RED_SOFT = "#F8EEEE"
 ORANGE_SOFT = "#FFF8EF"
 
+# Realistic transparent popcorn-box image used for the student options.
+# The same photo is scaled progressively for Small, Medium, and Large.
+POPCORN_IMAGE_URL = (
+    "https://purepng.com/public/uploads/large/"
+    "purepng.com-popcornfood-box-corn-bucket-popcorn-movie-film-cinema-"
+    "941524634411buadi.png"
+)
+
 
 # ============================================================
 # SAFE HTML HELPER
@@ -493,9 +501,9 @@ st.markdown(
             font-weight: 730;
         }}
 
-        /* Popcorn-box visual shown above each priced option. */
+        /* Realistic popcorn-box image shown above each priced option. */
         .popcorn-visual-wrap {{
-            height: 66px;
+            height: 72px;
             display: flex;
             align-items: flex-end;
             justify-content: center;
@@ -504,23 +512,24 @@ st.markdown(
         }}
 
         .popcorn-visual {{
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            line-height: 1;
-            filter: drop-shadow(0 2px 2px rgba(36, 59, 90, 0.08));
+            display: block;
+            width: auto;
+            max-width: 100%;
+            object-fit: contain;
+            object-position: center bottom;
+            filter: drop-shadow(0 3px 4px rgba(36, 59, 90, 0.12));
         }}
 
         .popcorn-visual-small {{
-            font-size: 2.15rem;
+            height: 46px;
         }}
 
         .popcorn-visual-medium {{
-            font-size: 2.65rem;
+            height: 56px;
         }}
 
         .popcorn-visual-large {{
-            font-size: 3.15rem;
+            height: 66px;
         }}
 
         .popcorn-visual-placeholder {{
@@ -1712,10 +1721,12 @@ def render_question_screen(
                 render_html(
                     f"""
                     <div class="popcorn-visual-wrap">
-                        <div class="popcorn-visual {popcorn_class}"
-                             aria-hidden="true">
-                            🍿
-                        </div>
+                        <img
+                            class="popcorn-visual {popcorn_class}"
+                            src="{POPCORN_IMAGE_URL}"
+                            alt="{option_name} popcorn box"
+                            loading="eager"
+                        >
                     </div>
                     """
                 )
