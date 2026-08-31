@@ -1,4 +1,4 @@
-
+import csv
 import html
 import hmac
 import io
@@ -493,16 +493,51 @@ st.markdown(
             font-weight: 730;
         }}
 
-        /* Make only the question choices larger and easier to read. */
+        /* Popcorn-box visual shown above each priced option. */
+        .popcorn-visual-wrap {{
+            height: 66px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            margin-bottom: 0.38rem;
+            line-height: 1;
+        }}
+
+        .popcorn-visual {{
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+            filter: drop-shadow(0 2px 2px rgba(36, 59, 90, 0.08));
+        }}
+
+        .popcorn-visual-small {{
+            font-size: 2.15rem;
+        }}
+
+        .popcorn-visual-medium {{
+            font-size: 2.65rem;
+        }}
+
+        .popcorn-visual-large {{
+            font-size: 3.15rem;
+        }}
+
+        .popcorn-visual-placeholder {{
+            width: 1px;
+            height: 1px;
+        }}
+
+        /* Keep the option capsules comfortably readable, but slightly more compact. */
         .stApp div[data-testid="stHorizontalBlock"] .st-key-popcorn_choice_small button,
         .stApp div[data-testid="stHorizontalBlock"] .st-key-popcorn_choice_medium button,
         .stApp div[data-testid="stHorizontalBlock"] .st-key-popcorn_choice_large button,
         .stApp div[data-testid="stHorizontalBlock"] .st-key-popcorn_choice_dont_know button {{
-            min-height: 112px !important;
-            height: 112px !important;
-            font-size: 0.94rem !important;
-            line-height: 1.35 !important;
-            padding: 0.78rem 0.62rem !important;
+            min-height: 96px !important;
+            height: 96px !important;
+            font-size: 0.88rem !important;
+            line-height: 1.30 !important;
+            padding: 0.68rem 0.58rem !important;
         }}
 
         .stApp div[data-testid="stHorizontalBlock"] .st-key-popcorn_choice_small button p,
@@ -510,8 +545,8 @@ st.markdown(
         .stApp div[data-testid="stHorizontalBlock"] .st-key-popcorn_choice_large button p,
         .stApp div[data-testid="stHorizontalBlock"] .st-key-popcorn_choice_dont_know button p {{
             margin: 0 !important;
-            font-size: 0.94rem !important;
-            line-height: 1.42 !important;
+            font-size: 0.88rem !important;
+            line-height: 1.36 !important;
             white-space: normal !important;
             text-align: center !important;
         }}
@@ -1645,13 +1680,13 @@ def render_question_screen(
     # sit in the middle of the question area rather than against the left.
     if len(options) == 3:
         option_row = st.columns(
-            [0.60, 1.50, 1.50, 1.50, 0.60],
+            [0.86, 1.34, 1.34, 1.34, 0.86],
             gap="small",
         )
         option_columns = option_row[1:4]
     else:
         option_row = st.columns(
-            [0.08, 1.45, 1.45, 1.45, 1.45, 0.08],
+            [0.34, 1.26, 1.26, 1.26, 1.26, 0.34],
             gap="small",
         )
         option_columns = option_row[1:5]
@@ -1666,6 +1701,33 @@ def render_question_screen(
             size_description = size_descriptions.get(
                 option_name
             )
+
+            popcorn_class = {
+                "Small": "popcorn-visual-small",
+                "Medium": "popcorn-visual-medium",
+                "Large": "popcorn-visual-large",
+            }.get(option_name)
+
+            if popcorn_class is not None:
+                render_html(
+                    f"""
+                    <div class="popcorn-visual-wrap">
+                        <div class="popcorn-visual {popcorn_class}"
+                             aria-hidden="true">
+                            🍿
+                        </div>
+                    </div>
+                    """
+                )
+            else:
+                # Keep Don't Know aligned with the other option capsules.
+                render_html(
+                    """
+                    <div class="popcorn-visual-wrap">
+                        <span class="popcorn-visual-placeholder"></span>
+                    </div>
+                    """
+                )
 
             if price is None:
                 button_label = option_name.upper()
