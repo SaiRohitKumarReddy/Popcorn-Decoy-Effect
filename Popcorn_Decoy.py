@@ -47,13 +47,9 @@ BORDER = "#DDE1E5"
 RED_SOFT = "#F8EEEE"
 ORANGE_SOFT = "#FFF8EF"
 
-# Realistic transparent popcorn-box image used for the student options.
-# The same photo is scaled progressively for Small, Medium, and Large.
-POPCORN_IMAGE_URL = (
-    "https://purepng.com/public/uploads/large/"
-    "purepng.com-popcornfood-box-corn-bucket-popcorn-movie-film-cinema-"
-    "941524634411buadi.png"
-)
+# Popcorn visuals are self-contained SVG illustrations.
+# Small, Medium, and Large use genuinely different bucket dimensions
+# while keeping the same red-and-white cinema-popcorn visual family.
 
 
 # ============================================================
@@ -71,6 +67,199 @@ def render_html(markup: str) -> None:
         compact_html,
         unsafe_allow_html=True,
     )
+
+
+def popcorn_bucket_svg(size_name: str) -> str:
+    """Return one illustrated popcorn bucket with a true size-specific shape."""
+
+    configs = {
+        "Small": {
+            "top_y": 58,
+            "bottom_y": 101,
+            "left_top": 41,
+            "right_top": 79,
+            "left_bottom": 45,
+            "right_bottom": 75,
+            "badge_y": 80,
+            "badge_r": 9,
+            "puffs": [
+                (45, 56, 7),
+                (52, 51, 8),
+                (60, 53, 8),
+                (68, 50, 8),
+                (75, 56, 7),
+                (59, 45, 7),
+            ],
+        },
+        "Medium": {
+            "top_y": 50,
+            "bottom_y": 103,
+            "left_top": 33,
+            "right_top": 87,
+            "left_bottom": 39,
+            "right_bottom": 81,
+            "badge_y": 77,
+            "badge_r": 11,
+            "puffs": [
+                (35, 49, 8),
+                (43, 44, 9),
+                (52, 47, 9),
+                (61, 42, 10),
+                (70, 46, 9),
+                (79, 43, 9),
+                (86, 49, 8),
+                (50, 38, 8),
+                (68, 35, 8),
+            ],
+        },
+        "Large": {
+            "top_y": 42,
+            "bottom_y": 106,
+            "left_top": 23,
+            "right_top": 97,
+            "left_bottom": 31,
+            "right_bottom": 89,
+            "badge_y": 74,
+            "badge_r": 13,
+            "puffs": [
+                (24, 42, 9),
+                (32, 36, 10),
+                (42, 40, 10),
+                (51, 32, 11),
+                (61, 37, 10),
+                (71, 31, 11),
+                (81, 37, 10),
+                (91, 34, 10),
+                (98, 42, 9),
+                (39, 29, 9),
+                (58, 24, 10),
+                (79, 24, 9),
+            ],
+        },
+    }
+
+    config = configs.get(size_name)
+    if config is None:
+        return ""
+
+    top_y = config["top_y"]
+    bottom_y = config["bottom_y"]
+    left_top = config["left_top"]
+    right_top = config["right_top"]
+    left_bottom = config["left_bottom"]
+    right_bottom = config["right_bottom"]
+
+    def interpolate(left: float, right: float, fraction: float) -> float:
+        return left + ((right - left) * fraction)
+
+    stripe_ranges = [
+        (0.00, 0.13),
+        (0.27, 0.40),
+        (0.54, 0.67),
+        (0.81, 0.94),
+    ]
+
+    stripe_svg = ""
+    for start, end in stripe_ranges:
+        top_x1 = interpolate(left_top, right_top, start)
+        top_x2 = interpolate(left_top, right_top, end)
+        bottom_x1 = interpolate(left_bottom, right_bottom, start)
+        bottom_x2 = interpolate(left_bottom, right_bottom, end)
+
+        stripe_svg += (
+            f'<polygon points="{top_x1:.1f},{top_y + 3} '
+            f'{top_x2:.1f},{top_y + 3} '
+            f'{bottom_x2:.1f},{bottom_y - 2} '
+            f'{bottom_x1:.1f},{bottom_y - 2}" '
+            'fill="#F04A3E" />'
+        )
+
+    puff_svg = ""
+    for index, (cx, cy, radius) in enumerate(config["puffs"]):
+        kernel_x = cx + (2 if index % 2 == 0 else -2)
+        kernel_y = cy + 1
+        puff_svg += (
+            '<g>'
+            f'<circle cx="{cx}" cy="{cy}" r="{radius}" '
+            'fill="#FFFDF7" stroke="#E7C36B" stroke-width="1.2" />'
+            f'<circle cx="{cx - radius * 0.45:.1f}" cy="{cy + 1:.1f}" '
+            f'r="{radius * 0.55:.1f}" fill="#FFF8DE" />'
+            f'<circle cx="{cx + radius * 0.40:.1f}" cy="{cy - 1:.1f}" '
+            f'r="{radius * 0.52:.1f}" fill="#FFFFFF" />'
+            f'<circle cx="{kernel_x}" cy="{kernel_y}" r="1.5" fill="#E9A628" />'
+            '</g>'
+        )
+
+    rim_left = left_top - 2
+    rim_width = (right_top - left_top) + 4
+
+    return f"""
+        <div class="popcorn-visual-wrap">
+            <svg
+                class="popcorn-visual"
+                viewBox="0 0 120 112"
+                role="img"
+                aria-label="{html.escape(size_name)} popcorn box"
+                xmlns="http://www.w3.org/2000/svg"
+            >
+                <ellipse
+                    cx="60"
+                    cy="106"
+                    rx="31"
+                    ry="3.4"
+                    fill="rgba(36,59,90,0.10)"
+                />
+
+                {puff_svg}
+
+                <polygon
+                    points="{left_top},{top_y} {right_top},{top_y}
+                            {right_bottom},{bottom_y} {left_bottom},{bottom_y}"
+                    fill="#FFFDF8"
+                    stroke="#D9DDE3"
+                    stroke-width="1.3"
+                />
+
+                {stripe_svg}
+
+                <rect
+                    x="{rim_left}"
+                    y="{top_y - 1}"
+                    width="{rim_width}"
+                    height="6"
+                    rx="2.2"
+                    fill="#F04A3E"
+                />
+
+                <rect
+                    x="{rim_left + 2}"
+                    y="{top_y}"
+                    width="{rim_width - 4}"
+                    height="2"
+                    rx="1"
+                    fill="#FFFFFF"
+                    opacity="0.9"
+                />
+
+                <circle
+                    cx="60"
+                    cy="{config['badge_y']}"
+                    r="{config['badge_r']}"
+                    fill="#FFFDF8"
+                    stroke="#E58D3A"
+                    stroke-width="2"
+                />
+
+                <circle
+                    cx="60"
+                    cy="{config['badge_y']}"
+                    r="{config['badge_r'] - 3}"
+                    fill="#FFFFFF"
+                    opacity="0.96"
+                />
+            </svg>
+        </div>
+    """
 
 
 # ============================================================
@@ -501,35 +690,23 @@ st.markdown(
             font-weight: 730;
         }}
 
-        /* Realistic popcorn-box image shown above each priced option. */
+        /* Illustrated cinema-popcorn buckets with true Small/Medium/Large shapes. */
         .popcorn-visual-wrap {{
-            height: 72px;
+            height: 82px;
             display: flex;
             align-items: flex-end;
             justify-content: center;
-            margin-bottom: 0.38rem;
+            margin-bottom: 0.30rem;
             line-height: 1;
         }}
 
         .popcorn-visual {{
             display: block;
-            width: auto;
+            width: 108px;
+            height: 82px;
             max-width: 100%;
-            object-fit: contain;
-            object-position: center bottom;
-            filter: drop-shadow(0 3px 4px rgba(36, 59, 90, 0.12));
-        }}
-
-        .popcorn-visual-small {{
-            height: 46px;
-        }}
-
-        .popcorn-visual-medium {{
-            height: 56px;
-        }}
-
-        .popcorn-visual-large {{
-            height: 66px;
+            overflow: visible;
+            filter: drop-shadow(0 2px 3px rgba(36, 59, 90, 0.08));
         }}
 
         .popcorn-visual-placeholder {{
@@ -1711,24 +1888,12 @@ def render_question_screen(
                 option_name
             )
 
-            popcorn_class = {
-                "Small": "popcorn-visual-small",
-                "Medium": "popcorn-visual-medium",
-                "Large": "popcorn-visual-large",
-            }.get(option_name)
-
-            if popcorn_class is not None:
+            if option_name in {"Small", "Medium", "Large"}:
+                # Each option uses a genuinely different bucket shape inside the
+                # same visual frame: Small is short/narrow, Medium is mid-sized,
+                # and Large is tall/wide, matching the supplied reference idea.
                 render_html(
-                    f"""
-                    <div class="popcorn-visual-wrap">
-                        <img
-                            class="popcorn-visual {popcorn_class}"
-                            src="{POPCORN_IMAGE_URL}"
-                            alt="{option_name} popcorn box"
-                            loading="eager"
-                        >
-                    </div>
-                    """
+                    popcorn_bucket_svg(option_name)
                 )
             else:
                 # Keep Don't Know aligned with the other option capsules.
