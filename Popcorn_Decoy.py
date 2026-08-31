@@ -496,7 +496,8 @@ st.markdown(
         /* Make only the question choices larger and easier to read. */
         .st-key-popcorn_choice_small button,
         .st-key-popcorn_choice_medium button,
-        .st-key-popcorn_choice_large button {{
+        .st-key-popcorn_choice_large button,
+        .st-key-popcorn_choice_dont_know button {{
             min-height: 50px !important;
             height: 50px !important;
             font-size: 0.82rem !important;
@@ -506,7 +507,8 @@ st.markdown(
 
         .st-key-popcorn_choice_small button p,
         .st-key-popcorn_choice_medium button p,
-        .st-key-popcorn_choice_large button p {{
+        .st-key-popcorn_choice_large button p,
+        .st-key-popcorn_choice_dont_know button p {{
             font-size: 0.82rem !important;
         }}
 
@@ -1550,18 +1552,20 @@ def render_scenario_transition(
 
 def scenario_options(
     scenario: int,
-) -> list[tuple[str, int]]:
+) -> list[tuple[str, int | None]]:
 
     if scenario == 1:
         return [
             ("Small", 150),
             ("Large", 300),
+            ("Don't Know", None),
         ]
 
     return [
         ("Small", 150),
         ("Medium", 290),
         ("Large", 300),
+        ("Don't Know", None),
     ]
 
 
@@ -1622,21 +1626,22 @@ def render_question_screen(
         else None
     )
 
-    # Scenario 1 has two choices. Scenario 2 adds the Medium decoy.
+    # Scenario 1 has Small, Large, and Don't Know.
+    # Scenario 2 additionally includes the Medium decoy.
     # Clicking a choice only updates temporary session state.
     # The response is saved only after SUBMIT RESPONSE is pressed.
-    if len(options) == 2:
-        option_row = st.columns(
-            [1.45, 1.45, 3.29],
-            gap="small",
-        )
-        option_columns = option_row[:2]
-    else:
+    if len(options) == 3:
         option_row = st.columns(
             [1.35, 1.35, 1.35, 2.14],
             gap="small",
         )
         option_columns = option_row[:3]
+    else:
+        option_row = st.columns(
+            [1.20, 1.20, 1.20, 1.20, 1.49],
+            gap="small",
+        )
+        option_columns = option_row[:4]
 
     for option_col, (option_name, price) in zip(
         option_columns,
@@ -1645,9 +1650,21 @@ def render_question_screen(
 
         with option_col:
 
+            button_label = (
+                option_name.upper()
+                if price is None
+                else f"{option_name.upper()} · ₹{price}"
+            )
+
+            option_key = (
+                option_name.lower()
+                .replace("'", "")
+                .replace(" ", "_")
+            )
+
             option_clicked = st.button(
-                f"{option_name.upper()} · ₹{price}",
-                key=f"popcorn_choice_{option_name.lower()}",
+                button_label,
+                key=f"popcorn_choice_{option_key}",
                 use_container_width=True,
                 type=(
                     "primary"
@@ -1666,14 +1683,20 @@ def render_question_screen(
 
     if selected_choice is not None:
 
+        selected_price = prices[selected_choice]
+        selected_price_html = (
+            f"&nbsp;·&nbsp; ₹{selected_price}"
+            if selected_price is not None
+            else ""
+        )
+
         render_html(
             f"""
             <div class="selected-note">
 
                 Selected:
                 <strong>{selected_choice}</strong>
-                &nbsp;·&nbsp;
-                ₹{prices[selected_choice]}
+                {selected_price_html}
 
             </div>
             """
@@ -1963,6 +1986,11 @@ def calculate_professor_stats(rows: list[dict]) -> dict:
                 for row in response_rows
                 if row.get(field_name) == "Large"
             ),
+            "Don't Know": sum(
+                1
+                for row in response_rows
+                if row.get(field_name) == "Don't Know"
+            ),
         }
 
     return {
@@ -2024,9 +2052,9 @@ def render_scenario_result_card(
     choices: dict[str, int],
 ) -> None:
     if scenario == 1:
-        options = ["Small", "Large"]
+        options = ["Small", "Large", "Don't Know"]
     else:
-        options = ["Small", "Medium", "Large"]
+        options = ["Small", "Medium", "Large", "Don't Know"]
 
     rows_html = ""
 
@@ -2426,10 +2454,10 @@ def render_professor_dashboard() -> None:
                 </div>
                 <div class="prof-reveal-copy">
                     Every student answers both scenarios in sequence.<br><br>
-                    <strong>Scenario 1</strong> has two choices:
-                    Small ₹150 and Large ₹300.<br>
-                    <strong>Scenario 2</strong> has three choices:
-                    Small ₹150, Medium ₹290, and Large ₹300.<br><br>
+                    <strong>Scenario 1</strong> has three choices:
+                    Small ₹150, Large ₹300, and Don't Know.<br>
+                    <strong>Scenario 2</strong> has four choices:
+                    Small ₹150, Medium ₹290, Large ₹300, and Don't Know.<br><br>
                     The Medium ₹290 option is the intended decoy. Its price is
                     very close to the Large ₹300 option, which can make the
                     Large option appear more attractive by comparison. The
