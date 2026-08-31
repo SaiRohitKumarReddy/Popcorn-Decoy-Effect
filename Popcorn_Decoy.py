@@ -1,4 +1,4 @@
-import csv
+
 import html
 import hmac
 import io
@@ -494,23 +494,24 @@ st.markdown(
         }}
 
         /* Make only the question choices larger and easier to read. */
-        .st-key-popcorn_choice_small button,
-        .st-key-popcorn_choice_medium button,
-        .st-key-popcorn_choice_large button,
-        .st-key-popcorn_choice_dont_know button {{
-            min-height: 76px !important;
-            height: 76px !important;
-            font-size: 0.90rem !important;
+        .stApp div[data-testid="stHorizontalBlock"] .st-key-popcorn_choice_small button,
+        .stApp div[data-testid="stHorizontalBlock"] .st-key-popcorn_choice_medium button,
+        .stApp div[data-testid="stHorizontalBlock"] .st-key-popcorn_choice_large button,
+        .stApp div[data-testid="stHorizontalBlock"] .st-key-popcorn_choice_dont_know button {{
+            min-height: 112px !important;
+            height: 112px !important;
+            font-size: 0.94rem !important;
             line-height: 1.35 !important;
-            padding: 0.58rem 0.85rem !important;
+            padding: 0.78rem 0.62rem !important;
         }}
 
-        .st-key-popcorn_choice_small button p,
-        .st-key-popcorn_choice_medium button p,
-        .st-key-popcorn_choice_large button p,
-        .st-key-popcorn_choice_dont_know button p {{
-            font-size: 0.90rem !important;
-            line-height: 1.38 !important;
+        .stApp div[data-testid="stHorizontalBlock"] .st-key-popcorn_choice_small button p,
+        .stApp div[data-testid="stHorizontalBlock"] .st-key-popcorn_choice_medium button p,
+        .stApp div[data-testid="stHorizontalBlock"] .st-key-popcorn_choice_large button p,
+        .stApp div[data-testid="stHorizontalBlock"] .st-key-popcorn_choice_dont_know button p {{
+            margin: 0 !important;
+            font-size: 0.94rem !important;
+            line-height: 1.42 !important;
             white-space: normal !important;
             text-align: center !important;
         }}
@@ -1639,18 +1640,21 @@ def render_question_screen(
     # Scenario 2 additionally includes the Medium decoy.
     # Clicking a choice only updates temporary session state.
     # The response is saved only after SUBMIT RESPONSE is pressed.
+    # Keep the complete option group horizontally centered.
+    # Equal spacer columns are used on the left and right so the capsules
+    # sit in the middle of the question area rather than against the left.
     if len(options) == 3:
         option_row = st.columns(
-            [1.35, 1.35, 1.35, 2.14],
+            [0.60, 1.50, 1.50, 1.50, 0.60],
             gap="small",
         )
-        option_columns = option_row[:3]
+        option_columns = option_row[1:4]
     else:
         option_row = st.columns(
-            [1.20, 1.20, 1.20, 1.20, 1.49],
+            [0.08, 1.45, 1.45, 1.45, 1.45, 0.08],
             gap="small",
         )
-        option_columns = option_row[:4]
+        option_columns = option_row[1:5]
 
     for option_col, (option_name, price) in zip(
         option_columns,
@@ -1666,10 +1670,12 @@ def render_question_screen(
             if price is None:
                 button_label = option_name.upper()
             elif size_description:
-                # Markdown hard break keeps the size information inside
-                # the same clickable capsule on a second line.
+                # Keep the size information inside the same clickable capsule.
+                # A non-breaking-space middle line creates a clear one-line gap
+                # between the option name/price and the size description.
                 button_label = (
                     f"{option_name.upper()} · ₹{price}  \n"
+                    "\u00A0  \n"
                     f"{size_description}"
                 )
             else:
