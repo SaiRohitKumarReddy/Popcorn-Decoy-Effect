@@ -13,7 +13,7 @@ from google.oauth2.service_account import Credentials
 # APP VERSION
 # ============================================================
 
-APP_VERSION = "3.0.0"
+APP_VERSION = "3.1.0"
 
 
 # ============================================================
@@ -269,13 +269,23 @@ def popcorn_bucket_svg(size_name: str) -> str:
 st.markdown(
     f"""
     <style>
-        html, body, [class*="css"] {{
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+        html, body, [class*="css"], .stApp {{
             font-family:
-                Inter,
+                "Inter",
                 -apple-system,
                 BlinkMacSystemFont,
                 "Segoe UI",
                 sans-serif;
+        }}
+
+        body, .stApp {{
+            font-size: 17px;
+        }}
+
+        button, input, textarea, select {{
+            font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
         }}
 
         .stApp {{
@@ -373,7 +383,7 @@ st.markdown(
             padding: 0 0.78rem !important;
             border-radius: 999px !important;
             border: 1.5px solid {LIGHT_ORANGE} !important;
-            font-size: 0.70rem !important;
+            font-size: 0.94rem !important;
             font-weight: 730 !important;
             line-height: 1 !important;
             letter-spacing: 0.01em !important;
@@ -383,7 +393,7 @@ st.markdown(
 
         div[data-testid="stHorizontalBlock"] .stButton > button p {{
             margin: 0 !important;
-            font-size: 0.70rem !important;
+            font-size: 0.94rem !important;
             line-height: 1 !important;
             white-space: nowrap !important;
         }}
@@ -421,7 +431,7 @@ st.markdown(
 
         .section-copy {{
             color: {MUTED};
-            font-size: 0.78rem;
+            font-size: 0.98rem;
             line-height: 1.5;
             margin: 0.25rem 0 0 0;
         }}
@@ -474,7 +484,7 @@ st.markdown(
             background-color: {SURFACE} !important;
             background: {SURFACE} !important;
             color: {TEXT} !important;
-            font-size: 0.80rem !important;
+            font-size: 0.94rem !important;
             padding: 0 0.86rem !important;
             box-shadow: none !important;
             box-sizing: border-box !important;
@@ -550,7 +560,7 @@ st.markdown(
             border: 1.5px solid {LIGHT_ORANGE};
             background: {ORANGE_SOFT};
             color: {NAVY};
-            font-size: 0.74rem;
+            font-size: 0.94rem;
             line-height: 1;
             font-weight: 790;
             letter-spacing: 0.025em;
@@ -569,7 +579,7 @@ st.markdown(
 
         .scenario-transition-copy {{
             color: {MUTED};
-            font-size: 0.96rem;
+            font-size: 1.04rem;
             line-height: 1.58;
             margin-top: 0.58rem;
         }}
@@ -586,13 +596,13 @@ st.markdown(
         .st-key-continue_scenario_2 button {{
             min-height: 46px !important;
             height: 46px !important;
-            font-size: 0.76rem !important;
+            font-size: 1.00rem !important;
             padding-left: 1.05rem !important;
             padding-right: 1.05rem !important;
         }}
 
         .st-key-continue_scenario_2 button p {{
-            font-size: 0.76rem !important;
+            font-size: 1.00rem !important;
         }}
 
 
@@ -609,7 +619,7 @@ st.markdown(
             border: 1.5px solid {LIGHT_ORANGE};
             background: {SURFACE};
             color: {NAVY};
-            font-size: 0.80rem;
+            font-size: 0.98rem;
             line-height: 1;
             font-weight: 790;
             letter-spacing: 0.02em;
@@ -644,7 +654,7 @@ st.markdown(
 
         .question-hint {{
             color: {MUTED};
-            font-size: 0.86rem;
+            font-size: 1.04rem;
             line-height: 1.4;
             margin: 0.68rem 0 0 0;
         }}
@@ -674,7 +684,7 @@ st.markdown(
             color: {TEXT};
             padding: 0.58rem 0.72rem;
             margin: 0.72rem 0 0.78rem 0;
-            font-size: 0.84rem;
+            font-size: 0.94rem;
             font-weight: 590;
         }}
 
@@ -686,7 +696,7 @@ st.markdown(
         .stButton > button {{
             min-height: 37px;
             border-radius: 7px;
-            font-size: 0.72rem;
+            font-size: 0.92rem;
             font-weight: 730;
         }}
 
@@ -721,7 +731,7 @@ st.markdown(
         .stApp div[data-testid="stHorizontalBlock"] .st-key-popcorn_choice_dont_know button {{
             min-height: 96px !important;
             height: 96px !important;
-            font-size: 0.88rem !important;
+            font-size: 1.00rem !important;
             line-height: 1.30 !important;
             padding: 0.68rem 0.58rem !important;
         }}
@@ -731,7 +741,7 @@ st.markdown(
         .stApp div[data-testid="stHorizontalBlock"] .st-key-popcorn_choice_large button p,
         .stApp div[data-testid="stHorizontalBlock"] .st-key-popcorn_choice_dont_know button p {{
             margin: 0 !important;
-            font-size: 0.88rem !important;
+            font-size: 1.00rem !important;
             line-height: 1.36 !important;
             white-space: normal !important;
             text-align: center !important;
@@ -741,11 +751,11 @@ st.markdown(
         .st-key-submit_response button {{
             min-height: 50px !important;
             height: 50px !important;
-            font-size: 0.88rem !important;
+            font-size: 1.00rem !important;
         }}
 
         .st-key-submit_response button p {{
-            font-size: 0.88rem !important;
+            font-size: 1.00rem !important;
         }}
 
         /* Continue and Join are enlarged through their column widths;
@@ -796,7 +806,7 @@ st.markdown(
 
         .success-copy {{
             color: {MUTED};
-            font-size: 0.96rem;
+            font-size: 1.04rem;
             line-height: 1.65;
         }}
 
@@ -823,7 +833,7 @@ st.markdown(
 
         .professor-login-copy {{
             color: {MUTED};
-            font-size: 0.92rem;
+            font-size: 1.00rem;
             line-height: 1.5;
             margin: 0.42rem 0 1rem 0;
         }}
@@ -844,7 +854,7 @@ st.markdown(
 
         .professor-dashboard-copy {{
             color: {MUTED};
-            font-size: 0.90rem;
+            font-size: 0.98rem;
             line-height: 1.5;
             margin: 0.36rem 0 0 0;
         }}
@@ -900,7 +910,7 @@ st.markdown(
 
         .prof-metric-label {{
             color: {MUTED};
-            font-size: 0.68rem;
+            font-size: 0.78rem;
             line-height: 1.25;
             font-weight: 740;
             letter-spacing: 0.035em;
@@ -942,7 +952,7 @@ st.markdown(
 
         .prof-result-subtitle {{
             color: {MUTED};
-            font-size: 0.77rem;
+            font-size: 0.87rem;
             line-height: 1.4;
             margin: 0.25rem 0 1rem 0;
         }}
@@ -957,7 +967,7 @@ st.markdown(
             gap: 0.75rem;
             align-items: center;
             color: {TEXT};
-            font-size: 0.80rem;
+            font-size: 0.98rem;
             line-height: 1.25;
             font-weight: 650;
             margin-bottom: 0.34rem;
@@ -993,7 +1003,7 @@ st.markdown(
 
         .decoy-result-label {{
             color: {NAVY};
-            font-size: 0.74rem;
+            font-size: 0.94rem;
             line-height: 1.2;
             font-weight: 790;
             letter-spacing: 0.045em;
@@ -1037,14 +1047,14 @@ st.markdown(
 
         .decoy-copy {{
             color: {MUTED};
-            font-size: 0.82rem;
+            font-size: 0.92rem;
             line-height: 1.5;
             margin-top: 0.42rem;
         }}
 
         .prof-controls-copy {{
             color: {MUTED};
-            font-size: 0.78rem;
+            font-size: 0.98rem;
             line-height: 1.45;
             margin: -0.20rem 0 0.70rem 0;
         }}
@@ -1069,7 +1079,7 @@ st.markdown(
 
         .prof-reveal-copy {{
             color: {MUTED};
-            font-size: 0.82rem;
+            font-size: 0.92rem;
             line-height: 1.58;
             margin: 0;
         }}
@@ -1085,7 +1095,7 @@ st.markdown(
             color: {TEXT};
             padding: 0.86rem 0.92rem;
             margin-top: 0.85rem;
-            font-size: 0.82rem;
+            font-size: 0.92rem;
             line-height: 1.5;
         }}
 
@@ -1098,7 +1108,7 @@ st.markdown(
             border: 1.5px solid {LIGHT_ORANGE} !important;
             background: {SURFACE} !important;
             color: {NAVY} !important;
-            font-size: 0.70rem !important;
+            font-size: 0.94rem !important;
             font-weight: 730 !important;
             box-shadow: none !important;
         }}
@@ -1107,7 +1117,7 @@ st.markdown(
         .stDownloadButton > button span {{
             margin: 0 !important;
             font-family: inherit !important;
-            font-size: 0.70rem !important;
+            font-size: 0.94rem !important;
             line-height: 1 !important;
             font-weight: 730 !important;
             letter-spacing: 0.01em !important;
@@ -1132,7 +1142,7 @@ st.markdown(
         .version-label {{
             text-align: center;
             color: #A3A7AD;
-            font-size: 0.57rem;
+            font-size: 0.68rem;
             margin-top: 2rem;
         }}
 
@@ -1154,12 +1164,12 @@ st.markdown(
             div[data-testid="stHorizontalBlock"] .stButton > button {{
                 height: 36px !important;
                 min-height: 36px !important;
-                font-size: 0.64rem !important;
+                font-size: 0.74rem !important;
                 padding: 0 0.55rem !important;
             }}
 
             div[data-testid="stHorizontalBlock"] .stButton > button p {{
-                font-size: 0.64rem !important;
+                font-size: 0.74rem !important;
             }}
 
             div[role="radiogroup"] {{
@@ -1173,7 +1183,7 @@ st.markdown(
 
 
 # ============================================================
-# GOOGLE SHEETS STORAGE
+# GOOGLE SHEETS STORAGE - NEW ROWS ARE ANONYMOUS
 # ============================================================
 
 RESPONSE_FIELDS = [
@@ -1318,16 +1328,36 @@ def read_rows() -> list[dict]:
 
 def append_response_row(
     row: dict,
-) -> None:
+) -> int:
+    """Append one anonymous response row and return its Sheet row number."""
+
     worksheet = get_google_worksheet()
 
-    worksheet.append_row(
+    result = worksheet.append_row(
         [
             row.get(field, "")
             for field in RESPONSE_FIELDS
         ],
         value_input_option="RAW",
     )
+
+    updated_range = str(
+        result.get("updates", {}).get("updatedRange", "")
+    )
+
+    if "!" in updated_range:
+        row_reference = updated_range.split("!", 1)[1].split(":", 1)[0]
+        row_digits = "".join(
+            character
+            for character in row_reference
+            if character.isdigit()
+        )
+
+        if row_digits:
+            return int(row_digits)
+
+    # Fallback for older gspread/API responses that do not return updatedRange.
+    return len(worksheet.get_all_values())
 
 
 def update_response_row(
@@ -1386,16 +1416,23 @@ def rows_to_csv_bytes(
     )
 
 
-def find_student(
-    rows: list[dict],
-    student_key: str,
+def find_student_by_row_number(
+    numbered_rows: list[tuple[int, dict]],
+    row_number: int,
 ) -> dict | None:
+    """Find the anonymous response row used by the current Streamlit session."""
 
-    for row in rows:
-        if row.get("name_key", "") == student_key:
-            return row
+    for current_row_number, row in numbered_rows:
+        if current_row_number == row_number:
+            return row.copy()
 
     return None
+
+
+def student_display_name(student: dict) -> str:
+    """Return the name kept only in this Streamlit session."""
+
+    return str(student.get("_display_name", "")).strip()
 
 
 # ============================================================
@@ -1405,28 +1442,18 @@ def find_student(
 def get_or_create_student(
     entered_name: str,
 ) -> dict:
-
-    rows = read_rows()
+    """Create a response row without storing the student's name in Google Sheets."""
 
     display_name = clean_name(
         entered_name
     )
 
-    student_key = normalize_name(
-        display_name
-    )
-
-    existing = find_student(
-        rows,
-        student_key,
-    )
-
-    if existing is not None:
-        return existing.copy()
-
+    # Preserve the existing 8-column Sheet structure so historical data is not
+    # changed. For every NEW response, name_key and name are blank cells.
+    # The display name exists only in this student's current Streamlit session.
     new_student = {
-        "name_key": student_key,
-        "name": display_name,
+        "name_key": "",
+        "name": "",
         "scenario_1_choice": "",
         "scenario_2_choice": "",
         "status": "started",
@@ -1435,15 +1462,19 @@ def get_or_create_student(
         "scenario_2_submitted_at": "",
     }
 
-    append_response_row(
+    sheet_row_number = append_response_row(
         new_student
     )
 
-    return new_student.copy()
+    session_student = new_student.copy()
+    session_student["_sheet_row_number"] = sheet_row_number
+    session_student["_display_name"] = display_name
+
+    return session_student
 
 
 def save_scenario_response(
-    student_key: str,
+    sheet_row_number: int,
     scenario: int,
     selected_choice: str,
 ) -> dict | None:
@@ -1452,7 +1483,7 @@ def save_scenario_response(
 
     for row_number, row in numbered_rows:
 
-        if row.get("name_key") != student_key:
+        if row_number != sheet_row_number:
             continue
 
         if scenario == 1:
@@ -1480,6 +1511,10 @@ def save_scenario_response(
 
         else:
             return None
+
+        # Never write the student's name or name-derived key for new responses.
+        row["name_key"] = ""
+        row["name"] = ""
 
         update_response_row(
             worksheet,
@@ -1698,7 +1733,7 @@ def render_student_scenario_header(
 ) -> None:
 
     safe_name = html.escape(
-        student["name"]
+        student_display_name(student)
     )
 
     render_html(
@@ -1981,7 +2016,7 @@ def render_question_screen(
         return
 
     saved_student = save_scenario_response(
-        student["name_key"],
+        int(student["_sheet_row_number"]),
         scenario,
         selected_choice,
     )
@@ -1999,6 +2034,9 @@ def render_question_screen(
         st.session_state.just_submitted = False
 
         return
+
+    saved_student["_sheet_row_number"] = student["_sheet_row_number"]
+    saved_student["_display_name"] = student_display_name(student)
 
     st.session_state.student = (
         saved_student
@@ -2032,7 +2070,7 @@ def render_success_screen(
 ) -> None:
 
     safe_name = html.escape(
-        student["name"]
+        student_display_name(student)
     )
 
     just_submitted = st.session_state.get(
@@ -2098,12 +2136,23 @@ def render_student_mode() -> None:
 
         return
 
-    rows = read_rows()
+    _, numbered_rows = read_sheet_rows_with_numbers()
 
-    latest_student = find_student(
-        rows,
-        student["name_key"],
+    sheet_row_number = student.get(
+        "_sheet_row_number"
     )
+
+    if sheet_row_number is None:
+        latest_student = None
+    else:
+        latest_student = find_student_by_row_number(
+            numbered_rows,
+            int(sheet_row_number),
+        )
+
+        if latest_student is not None:
+            latest_student["_sheet_row_number"] = int(sheet_row_number)
+            latest_student["_display_name"] = student_display_name(student)
 
     if latest_student is None:
 
