@@ -1,4 +1,4 @@
-
+import csv
 import html
 import hmac
 import io
@@ -400,6 +400,27 @@ st.markdown(
 
         div[data-testid="stHorizontalBlock"] .stButton > button:hover {{
             border-color: {LIGHT_ORANGE_HOVER} !important;
+        }}
+
+        /* Professor Mode capsule: a little wider with perfectly centered text. */
+        .st-key-mode_professor button {{
+            min-height: 44px !important;
+            height: 44px !important;
+            padding: 0 1.10rem !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            text-align: center !important;
+        }}
+
+        .st-key-mode_professor button p,
+        .st-key-mode_professor button span {{
+            width: 100% !important;
+            margin: 0 !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            text-align: center !important;
         }}
 
         /* ==================================================
@@ -1600,7 +1621,7 @@ def render_header() -> None:
         professor_col,
         right_space,
     ) = st.columns(
-        [1.18, 0.08, 1.18, 5.26],
+        [1.18, 0.08, 1.50, 4.94],
         gap=None,
     )
 
