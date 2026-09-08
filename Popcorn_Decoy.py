@@ -3,6 +3,7 @@ import html
 import hmac
 import io
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 import gspread
 import streamlit as st
@@ -1270,8 +1271,12 @@ def get_google_worksheet():
     )
 
 
+IST = ZoneInfo("Asia/Kolkata")
+
+
 def now_text() -> str:
-    return datetime.now().isoformat(timespec="seconds")
+    """Return the current timestamp in Indian Standard Time (IST)."""
+    return datetime.now(IST).isoformat(timespec="seconds")
 
 
 def clean_name(value: str) -> str:
