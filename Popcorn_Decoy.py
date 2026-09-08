@@ -2,6 +2,8 @@ import csv
 import html
 import hmac
 import io
+import threading
+import time
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
@@ -14,7 +16,7 @@ from google.oauth2.service_account import Credentials
 # APP VERSION
 # ============================================================
 
-APP_VERSION = "3.2.0"
+APP_VERSION = "3.3.0"
 
 
 # ============================================================
@@ -1271,6 +1273,61 @@ def get_google_worksheet():
     )
 
 
+@st.cache_resource(show_spinner=False)
+def sheet_lock() -> threading.RLock:
+    """One process-wide reentrant lock serialising all Google Sheets calls.
+
+    Streamlit shares st.cache_resource objects across all active sessions,
+    so every student session and the professor dashboard acquire the same
+    lock before they touch the shared worksheet.  An RLock is used so that
+    a single session can re-enter the lock (e.g. read_sheet_rows_with_numbers
+    calling append_row for header initialisation) without deadlocking.
+    """
+    return threading.RLock()
+
+
+# ---------------------------------------------------------------------------
+# Retry / backoff
+# ---------------------------------------------------------------------------
+
+_RETRY_DELAYS = [0.3, 0.7, 1.5, 3.0]
+
+
+def _is_transient(exc: Exception) -> bool:
+    """Return True for temporary Google / network errors worth retrying."""
+    try:
+        if isinstance(exc, gspread.exceptions.APIError):
+            response = getattr(exc, "response", None)
+            if response is not None:
+                code = getattr(response, "status_code", 0)
+                return int(code) in (429, 500, 502, 503, 504)
+    except Exception:
+        pass
+    return isinstance(exc, (ConnectionError, TimeoutError, OSError))
+
+
+def run_with_retry(operation):
+    """Run *operation* inside sheet_lock() with exponential back-off.
+
+    The sleep occurs OUTSIDE the lock so a slow or failed attempt does
+    not block every other session while it is waiting.
+    """
+    last_exc: Exception | None = None
+    delays = [0.0] + list(_RETRY_DELAYS)   # first attempt: no pre-delay
+    for delay in delays:
+        if delay:
+            time.sleep(delay)               # sleep outside the lock
+        try:
+            with sheet_lock():
+                return operation()
+        except Exception as exc:
+            if _is_transient(exc):
+                last_exc = exc
+                continue
+            raise
+    raise last_exc  # type: ignore[misc]
+
+
 IST = ZoneInfo("Asia/Kolkata")
 
 
@@ -1288,59 +1345,67 @@ def normalize_name(value: str) -> str:
 
 
 def read_sheet_rows_with_numbers() -> tuple[object, list[tuple[int, dict]]]:
-    """Read response rows while preserving their Google Sheet row numbers."""
+    """Read response rows while preserving their Google Sheet row numbers.
 
-    worksheet = get_google_worksheet()
-    values = worksheet.get_all_values()
+    The entire read (and the one-time header initialisation) is performed
+    inside run_with_retry so it is serialised against concurrent writes and
+    automatically retried on transient Google / network errors.
+    """
 
-    if not values:
-        worksheet.append_row(
-            RESPONSE_FIELDS,
-            value_input_option="RAW",
-        )
-        return worksheet, []
+    def _operation():
+        worksheet = get_google_worksheet()
+        values = worksheet.get_all_values()
 
-    header = values[0]
-
-    if header[:len(RESPONSE_FIELDS)] != RESPONSE_FIELDS:
-        raise RuntimeError(
-            "The Responses worksheet header does not match the expected "
-            "8 response columns. Please keep row 1 as: "
-            + ", ".join(RESPONSE_FIELDS)
-        )
-
-    numbered_rows: list[tuple[int, dict]] = []
-
-    for row_number, raw_values in enumerate(
-        values[1:],
-        start=2,
-    ):
-        padded_values = list(raw_values) + [
-            ""
-        ] * max(
-            0,
-            len(RESPONSE_FIELDS) - len(raw_values),
-        )
-
-        record = {
-            field: padded_values[index]
-            for index, field in enumerate(RESPONSE_FIELDS)
-        }
-
-        if not any(
-            str(value).strip()
-            for value in record.values()
-        ):
-            continue
-
-        numbered_rows.append(
-            (
-                row_number,
-                record,
+        if not values:
+            worksheet.append_row(
+                RESPONSE_FIELDS,
+                value_input_option="RAW",
             )
-        )
+            return worksheet, []
 
-    return worksheet, numbered_rows
+        header = values[0]
+
+        if header[:len(RESPONSE_FIELDS)] != RESPONSE_FIELDS:
+            raise RuntimeError(
+                "The Responses worksheet header does not match the expected "
+                "8 response columns. Please keep row 1 as: "
+                + ", ".join(RESPONSE_FIELDS)
+            )
+
+        numbered_rows: list[tuple[int, dict]] = []
+
+        for row_number, raw_values in enumerate(
+            values[1:],
+            start=2,
+        ):
+            padded_values = list(raw_values) + [
+                ""
+            ] * max(
+                0,
+                len(RESPONSE_FIELDS) - len(raw_values),
+            )
+
+            record = {
+                field: padded_values[index]
+                for index, field in enumerate(RESPONSE_FIELDS)
+            }
+
+            if not any(
+                str(value).strip()
+                for value in record.values()
+            ):
+                continue
+
+            numbered_rows.append(
+                (
+                    row_number,
+                    record,
+                )
+            )
+
+        return worksheet, numbered_rows
+
+    return run_with_retry(_operation)
 
 
 def read_rows() -> list[dict]:
@@ -1355,83 +1420,99 @@ def read_rows() -> list[dict]:
 def append_response_row(
     row: dict,
 ) -> int:
-    """Append one anonymous response row and return its Sheet row number."""
+    """Append one anonymous response row and return its Sheet row number.
 
-    worksheet = get_google_worksheet()
+    Serialised by run_with_retry so concurrent Scenario-1 submits from
+    different student sessions are queued and retried on transient errors.
+    """
 
-    result = worksheet.append_row(
-        [
-            row.get(field, "")
-            for field in RESPONSE_FIELDS
-        ],
-        value_input_option="RAW",
-    )
+    def _operation() -> int:
+        worksheet = get_google_worksheet()
 
-    updated_range = str(
-        result.get("updates", {}).get("updatedRange", "")
-    )
-
-    if "!" in updated_range:
-        row_reference = updated_range.split("!", 1)[1].split(":", 1)[0]
-        row_digits = "".join(
-            character
-            for character in row_reference
-            if character.isdigit()
-        )
-
-        if row_digits:
-            return int(row_digits)
-
-    # No fallback Sheet read here. In the unlikely event updatedRange is
-    # unavailable, derive the appended row from tableRange without another
-    # Google Sheets request.
-    table_range = str(
-        result.get("tableRange", "")
-    )
-
-    if "!" in table_range:
-        table_reference = table_range.split("!", 1)[1]
-        last_cell = table_reference.split(":")[-1]
-        row_digits = "".join(
-            character
-            for character in last_cell
-            if character.isdigit()
-        )
-
-        if row_digits:
-            return int(row_digits) + 1
-
-    raise RuntimeError(
-        "Google Sheets appended the response but did not return its row number."
-    )
-
-
-def update_response_row(
-    worksheet,
-    row_number: int,
-    row: dict,
-) -> None:
-    """Update one student's complete record without rewriting other rows."""
-
-    worksheet.update(
-        range_name=f"A{row_number}:H{row_number}",
-        values=[
+        result = worksheet.append_row(
             [
                 row.get(field, "")
                 for field in RESPONSE_FIELDS
-            ]
-        ],
-        value_input_option="RAW",
-    )
+            ],
+            value_input_option="RAW",
+        )
+
+        updated_range = str(
+            result.get("updates", {}).get("updatedRange", "")
+        )
+
+        if "!" in updated_range:
+            row_reference = updated_range.split("!", 1)[1].split(":", 1)[0]
+            row_digits = "".join(
+                character
+                for character in row_reference
+                if character.isdigit()
+            )
+
+            if row_digits:
+                return int(row_digits)
+
+        # No fallback Sheet read here. In the unlikely event updatedRange is
+        # unavailable, derive the appended row from tableRange without another
+        # Google Sheets request.
+        table_range = str(
+            result.get("tableRange", "")
+        )
+
+        if "!" in table_range:
+            table_reference = table_range.split("!", 1)[1]
+            last_cell = table_reference.split(":")[-1]
+            row_digits = "".join(
+                character
+                for character in last_cell
+                if character.isdigit()
+            )
+
+            if row_digits:
+                return int(row_digits) + 1
+
+        raise RuntimeError(
+            "Google Sheets appended the response but did not return its row number."
+        )
+
+    return run_with_retry(_operation)
+
+
+def update_response_row(
+    row_number: int,
+    row: dict,
+) -> None:
+    """Update one student's complete record without rewriting other rows.
+
+    The worksheet parameter has been removed; the worksheet is obtained
+    inside run_with_retry so this call is fully serialised against
+    concurrent appends and reads.
+    """
+
+    def _operation() -> None:
+        worksheet = get_google_worksheet()
+        worksheet.update(
+            range_name=f"A{row_number}:H{row_number}",
+            values=[
+                [
+                    row.get(field, "")
+                    for field in RESPONSE_FIELDS
+                ]
+            ],
+            value_input_option="RAW",
+        )
+
+    run_with_retry(_operation)
 
 
 def clear_response_rows() -> None:
     """Clear student data while preserving the row-1 headers."""
 
-    worksheet = get_google_worksheet()
-    worksheet.batch_clear(
-        ["A2:H"]
-    )
+    def _operation() -> None:
+        worksheet = get_google_worksheet()
+        worksheet.batch_clear(["A2:H"])
+
+    run_with_retry(_operation)
 
 
 def rows_to_csv_bytes(
@@ -1580,9 +1661,7 @@ def save_scenario_response(
 
         # SECOND and only Sheet operation for Scenario 2: update the exact
         # row already known from the Scenario 1 append. No Sheet read/search.
-        worksheet = get_google_worksheet()
         update_response_row(
-            worksheet,
             int(row_number),
             row,
         )
@@ -1607,6 +1686,7 @@ def initialize_state() -> None:
         "student_stage": "name",
         "selected_choice": None,
         "just_submitted": False,
+        "saving_response": False,
         "name_input": "",
         "professor_authenticated": False,
         "professor_reveal_experiment": False,
@@ -1898,6 +1978,16 @@ def scenario_options(
     ]
 
 
+def _select_choice(name: str) -> None:
+    """on_click callback: store the selected option in session state.
+
+    Using on_click instead of inspecting the button return value and calling
+    rerun_app() avoids one unnecessary Streamlit execution cycle per option
+    click.  Streamlit already triggers a rerun when any button fires.
+    """
+    st.session_state.selected_choice = name
+
+
 def render_question_screen(
     student: dict,
     scenario: int,
@@ -2029,7 +2119,7 @@ def render_question_screen(
                 .replace(" ", "_")
             )
 
-            option_clicked = st.button(
+            st.button(
                 button_label,
                 key=f"popcorn_choice_{option_key}",
                 use_container_width=True,
@@ -2038,15 +2128,9 @@ def render_question_screen(
                     if selected_choice == option_name
                     else "secondary"
                 ),
+                on_click=_select_choice,
+                args=(option_name,),
             )
-
-        if option_clicked:
-
-            st.session_state.selected_choice = (
-                option_name
-            )
-
-            rerun_app()
 
     if selected_choice is not None:
 
@@ -2084,11 +2168,22 @@ def render_question_screen(
     if not submit_clicked:
         return
 
-    saved_student = save_scenario_response(
-        student,
-        scenario,
-        selected_choice,
-    )
+    # Guard: ignore duplicate submit if this session is already mid-save
+    # (e.g. rapid double-click queuing a second execution).
+    if st.session_state.get("saving_response", False):
+        return
+
+    st.session_state["saving_response"] = True
+
+    try:
+        saved_student = save_scenario_response(
+            student,
+            scenario,
+            selected_choice,
+        )
+    finally:
+        # Always clear the flag so future submissions are not blocked.
+        st.session_state["saving_response"] = False
 
     if saved_student is None:
 
@@ -2649,7 +2744,7 @@ def render_professor_dashboard() -> None:
             </div>
             <div class="prof-auto-refresh-capsule">
                 <span class="prof-auto-refresh-dot"></span>
-                AUTO-REFRESH EVERY 10 SEC
+                MANUAL REFRESH
             </div>
         </div>
         """
@@ -2860,14 +2955,10 @@ def render_professor_dashboard() -> None:
             rerun_app()
 
 
-if hasattr(st, "fragment"):
-    render_professor_dashboard = st.fragment(
-        run_every="10s"
-    )(render_professor_dashboard)
-elif hasattr(st, "experimental_fragment"):
-    render_professor_dashboard = st.experimental_fragment(
-        run_every="10s"
-    )(render_professor_dashboard)
+# Auto-refresh has been intentionally removed.
+# The professor uses the REFRESH RESULTS button to reload data on demand.
+# This prevents background Sheet reads from racing with student submits
+# during classroom use.
 
 
 def render_professor_mode() -> None:
