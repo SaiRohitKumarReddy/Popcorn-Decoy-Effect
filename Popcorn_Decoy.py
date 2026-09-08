@@ -13,7 +13,7 @@ from google.oauth2.service_account import Credentials
 # APP VERSION
 # ============================================================
 
-APP_VERSION = "3.1.0"
+APP_VERSION = "3.2.0"
 
 
 # ============================================================
@@ -1377,8 +1377,28 @@ def append_response_row(
         if row_digits:
             return int(row_digits)
 
-    # Fallback for older gspread/API responses that do not return updatedRange.
-    return len(worksheet.get_all_values())
+    # No fallback Sheet read here. In the unlikely event updatedRange is
+    # unavailable, derive the appended row from tableRange without another
+    # Google Sheets request.
+    table_range = str(
+        result.get("tableRange", "")
+    )
+
+    if "!" in table_range:
+        table_reference = table_range.split("!", 1)[1]
+        last_cell = table_reference.split(":")[-1]
+        row_digits = "".join(
+            character
+            for character in last_cell
+            if character.isdigit()
+        )
+
+        if row_digits:
+            return int(row_digits) + 1
+
+    raise RuntimeError(
+        "Google Sheets appended the response but did not return its row number."
+    )
 
 
 def update_response_row(
@@ -1463,16 +1483,20 @@ def student_display_name(student: dict) -> str:
 def get_or_create_student(
     entered_name: str,
 ) -> dict:
-    """Create a response row without storing the student's name in Google Sheets."""
+    """Create the student only in Streamlit session state.
+
+    IMPORTANT: No Google Sheets request is made when the student enters
+    their name. The first Sheet write happens only when Scenario 1 is
+    submitted.
+    """
 
     display_name = clean_name(
         entered_name
     )
 
-    # Preserve the existing 8-column Sheet structure so historical data is not
-    # changed. For every NEW response, name_key and name are blank cells.
-    # The display name exists only in this student's current Streamlit session.
-    new_student = {
+    # Preserve the existing 8-column Sheet structure. The student's display
+    # name remains session-only and is never stored in Google Sheets.
+    session_student = {
         "name_key": "",
         "name": "",
         "scenario_1_choice": "",
@@ -1481,69 +1505,88 @@ def get_or_create_student(
         "created_at": now_text(),
         "scenario_1_submitted_at": "",
         "scenario_2_submitted_at": "",
+        "_sheet_row_number": None,
+        "_display_name": display_name,
     }
-
-    sheet_row_number = append_response_row(
-        new_student
-    )
-
-    session_student = new_student.copy()
-    session_student["_sheet_row_number"] = sheet_row_number
-    session_student["_display_name"] = display_name
 
     return session_student
 
 
 def save_scenario_response(
-    sheet_row_number: int,
+    student: dict,
     scenario: int,
     selected_choice: str,
 ) -> dict | None:
+    """Save one scenario with no full-Sheet read.
 
-    worksheet, numbered_rows = read_sheet_rows_with_numbers()
+    Scenario 1: append one row and remember its row number in session state.
+    Scenario 2: update that known row directly.
 
-    for row_number, row in numbered_rows:
+    Student path therefore uses zero Sheet reads and only two Sheet writes
+    for a completed experiment.
+    """
 
-        if row_number != sheet_row_number:
-            continue
+    row = {
+        field: student.get(field, "")
+        for field in RESPONSE_FIELDS
+    }
 
-        if scenario == 1:
-            if row.get("scenario_1_choice"):
-                return row.copy()
+    # New responses remain anonymous in Google Sheets.
+    row["name_key"] = ""
+    row["name"] = ""
 
-            row["scenario_1_choice"] = selected_choice
-            row["scenario_1_submitted_at"] = now_text()
+    display_name = student_display_name(student)
 
-            if row.get("scenario_2_choice"):
-                row["status"] = "completed"
-            else:
-                row["status"] = "scenario_1_submitted"
+    if scenario == 1:
+        # Guard against an accidental duplicate submit within the same session.
+        if row.get("scenario_1_choice"):
+            return student.copy()
 
-        elif scenario == 2:
-            if not row.get("scenario_1_choice"):
-                return None
+        row["scenario_1_choice"] = selected_choice
+        row["scenario_1_submitted_at"] = now_text()
+        row["status"] = "scenario_1_submitted"
 
-            if row.get("scenario_2_choice"):
-                return row.copy()
+        # FIRST and only Sheet operation for Scenario 1: one append/write.
+        row_number = append_response_row(
+            row
+        )
 
-            row["scenario_2_choice"] = selected_choice
-            row["scenario_2_submitted_at"] = now_text()
-            row["status"] = "completed"
+        saved_student = row.copy()
+        saved_student["_sheet_row_number"] = row_number
+        saved_student["_display_name"] = display_name
 
-        else:
+        return saved_student
+
+    if scenario == 2:
+        row_number = student.get(
+            "_sheet_row_number"
+        )
+
+        if not row.get("scenario_1_choice") or row_number is None:
             return None
 
-        # Never write the student's name or name-derived key for new responses.
-        row["name_key"] = ""
-        row["name"] = ""
+        # Guard against an accidental duplicate submit within the same session.
+        if row.get("scenario_2_choice"):
+            return student.copy()
 
+        row["scenario_2_choice"] = selected_choice
+        row["scenario_2_submitted_at"] = now_text()
+        row["status"] = "completed"
+
+        # SECOND and only Sheet operation for Scenario 2: update the exact
+        # row already known from the Scenario 1 append. No Sheet read/search.
+        worksheet = get_google_worksheet()
         update_response_row(
             worksheet,
-            row_number,
+            int(row_number),
             row,
         )
 
-        return row.copy()
+        saved_student = row.copy()
+        saved_student["_sheet_row_number"] = int(row_number)
+        saved_student["_display_name"] = display_name
+
+        return saved_student
 
     return None
 
@@ -2037,7 +2080,7 @@ def render_question_screen(
         return
 
     saved_student = save_scenario_response(
-        int(student["_sheet_row_number"]),
+        student,
         scenario,
         selected_choice,
     )
@@ -2055,9 +2098,6 @@ def render_question_screen(
         st.session_state.just_submitted = False
 
         return
-
-    saved_student["_sheet_row_number"] = student["_sheet_row_number"]
-    saved_student["_display_name"] = student_display_name(student)
 
     st.session_state.student = (
         saved_student
@@ -2144,6 +2184,11 @@ def render_success_screen(
 # ============================================================
 
 def render_student_mode() -> None:
+    """Render Student Mode using session state only.
+
+    There are deliberately no Google Sheets reads in this router. Selecting
+    options and moving between screens only reruns Streamlit locally.
+    """
 
     student = st.session_state.get(
         "student"
@@ -2157,52 +2202,17 @@ def render_student_mode() -> None:
 
         return
 
-    _, numbered_rows = read_sheet_rows_with_numbers()
-
-    sheet_row_number = student.get(
-        "_sheet_row_number"
+    current_stage = st.session_state.get(
+        "student_stage",
+        "scenario_1",
     )
 
-    if sheet_row_number is None:
-        latest_student = None
-    else:
-        latest_student = find_student_by_row_number(
-            numbered_rows,
-            int(sheet_row_number),
-        )
-
-        if latest_student is not None:
-            latest_student["_sheet_row_number"] = int(sheet_row_number)
-            latest_student["_display_name"] = student_display_name(student)
-
-    if latest_student is None:
-
-        st.session_state.student = None
-        st.session_state.student_stage = "name"
-        st.session_state.selected_choice = None
-        st.session_state.just_submitted = False
-
-        render_name_screen()
-
-        return
-
-    st.session_state.student = (
-        latest_student
-    )
-
-    # Stored responses are authoritative. After Scenario 1 is saved,
-    # the student first sees a clear transition screen. Once CONTINUE is
-    # pressed in the current session, Scenario 2 opens. A fresh session
-    # returns to the transition rather than repeating Scenario 1.
-    if latest_student.get("scenario_2_choice"):
+    # Session state is authoritative for the student flow. Google Sheets is
+    # used only as the persistence destination when SUBMIT RESPONSE is clicked.
+    if student.get("scenario_2_choice"):
         stage = "submitted"
 
-    elif latest_student.get("scenario_1_choice"):
-        current_stage = st.session_state.get(
-            "student_stage",
-            "scenario_1_complete",
-        )
-
+    elif student.get("scenario_1_choice"):
         stage = (
             "scenario_2"
             if current_stage == "scenario_2"
@@ -2217,11 +2227,11 @@ def render_student_mode() -> None:
     if stage == "scenario_1":
 
         render_student_scenario_header(
-            latest_student
+            student
         )
 
         render_question_screen(
-            latest_student,
+            student,
             scenario=1,
         )
 
@@ -2230,11 +2240,11 @@ def render_student_mode() -> None:
     if stage == "scenario_1_complete":
 
         render_student_scenario_header(
-            latest_student
+            student
         )
 
         render_scenario_transition(
-            latest_student
+            student
         )
 
         return
@@ -2242,18 +2252,18 @@ def render_student_mode() -> None:
     if stage == "scenario_2":
 
         render_student_scenario_header(
-            latest_student
+            student
         )
 
         render_question_screen(
-            latest_student,
+            student,
             scenario=2,
         )
 
         return
 
     render_success_screen(
-        latest_student
+        student
     )
 
 
@@ -2634,7 +2644,7 @@ def render_professor_dashboard() -> None:
             </div>
             <div class="prof-auto-refresh-capsule">
                 <span class="prof-auto-refresh-dot"></span>
-                AUTO-REFRESH EVERY 3 SEC
+                AUTO-REFRESH EVERY 10 SEC
             </div>
         </div>
         """
@@ -2847,11 +2857,11 @@ def render_professor_dashboard() -> None:
 
 if hasattr(st, "fragment"):
     render_professor_dashboard = st.fragment(
-        run_every="3s"
+        run_every="10s"
     )(render_professor_dashboard)
 elif hasattr(st, "experimental_fragment"):
     render_professor_dashboard = st.experimental_fragment(
-        run_every="3s"
+        run_every="10s"
     )(render_professor_dashboard)
 
 
