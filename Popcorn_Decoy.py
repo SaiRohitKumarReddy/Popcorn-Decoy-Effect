@@ -336,6 +336,20 @@ st.markdown(
             transition: all 0.12s ease !important;
         }}
 
+        /* Instant press-down feedback so students know their click landed. */
+        button:active:not(:disabled) {{
+            transform: scale(0.955) translateY(1px) !important;
+            opacity: 0.78 !important;
+            transition: all 0.06s ease !important;
+        }}
+
+        /* Disabled buttons: clearly non-interactive cursor. */
+        button:disabled,
+        button[disabled] {{
+            cursor: not-allowed !important;
+            opacity: 0.50 !important;
+        }}
+
         .stButton > button[kind="primary"],
         .stButton > button[data-testid="stBaseButton-primary"] {{
             background: {NAVY} !important;
@@ -2176,11 +2190,12 @@ def render_question_screen(
     st.session_state["saving_response"] = True
 
     try:
-        saved_student = save_scenario_response(
-            student,
-            scenario,
-            selected_choice,
-        )
+        with st.spinner("Saving your response\u2026"):
+            saved_student = save_scenario_response(
+                student,
+                scenario,
+                selected_choice,
+            )
     finally:
         # Always clear the flag so future submissions are not blocked.
         st.session_state["saving_response"] = False
