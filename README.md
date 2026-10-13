@@ -331,34 +331,3 @@ python -m py_compile Popcorn_Decoy.py
 
 For a real integration test, use a **separate test spreadsheet**: initialize headers, submit both scenarios, check that the second answer updates the first row, open Professor Mode, verify the paired comparison and CSV export, and confirm reset clears data while keeping headers. Such a test will write to and clear the configured worksheet.
 
-## Possible extensions
-
-Potential enhancements include a persistent anonymous participant ID, duplicate-submission protection, session recovery, a randomized between-subjects design, statistical testing of paired responses, and a more robust database for larger deployments. These are **future possibilities**, not features currently implemented.
-
-## Frequently asked questions
-
-**Does the app randomly allocate students to Group A or Group B?**  
-No. All students see Scenario 1 followed by Scenario 2. The supplied older README refers to a different prototype.
-
-**Can an instructor track responses by the student name they typed?**  
-No. The currently written Google Sheets rows leave the two name columns blank. A name typed in the application is retained only in the current Streamlit session.
-
-**Are the dashboard numbers automatically refreshed every few seconds?**  
-No. Select **Refresh Results** in Professor Mode to reload worksheet data. This avoids unnecessary Google Sheets polling while students submit answers.
-
-**Is a positive Large-choice change proof of the decoy effect?**  
-No. It is a descriptive observation from a fixed-order choice task. It could motivate a more carefully controlled experimental study.
-
-**Can I run the application without Google Sheets credentials?**  
-The UI may open, but saving responses and loading the professor dashboard require valid Google Sheets credentials and an accessible worksheet. There is no active local CSV fallback in this version.
-
-## License and use
-
-No license is included in the supplied repository. If you plan to let others reuse or redistribute the source, add a `LICENSE` file specifying the terms you wish to grant. The app is an educational demonstration, not a validated research instrument.
-
----
-
-**Purpose:** Behavioral-economics education and classroom experimentation.
-
-**Entry point:** `Popcorn_Decoy.py`  
-**App version:** `3.3.0`  
