@@ -25,7 +25,7 @@ Students make two hypothetical popcorn-purchasing decisions: first from a two-si
 - [Privacy and security](#privacy-and-security)
 - [Current limitations and design considerations](#current-limitations-and-design-considerations)
 - [Troubleshooting](#troubleshooting)
-- [Possible extensions](#possible-extensions)
+
 
 ## Overview
 
